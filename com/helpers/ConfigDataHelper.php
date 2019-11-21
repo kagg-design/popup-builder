@@ -61,6 +61,7 @@ class ConfigDataHelper
 		add_filter('sgPopupTargetTypes', array(__CLASS__, 'addPopupTargetTypes'), 1, 1);
 		add_filter('sgPopupTargetAttrs', array(__CLASS__, 'addPopupTargetAttrs'), 1, 1);
 		add_filter('sgPopupPageTemplates', array(__CLASS__, 'addPopupPageTemplates'), 1, 1);
+		add_action( 'clean_term_cache', array( __CLASS__, 'clean_term_cache_filter' ) );
 	}
 
 	public static function addPopupTargetParams($targetParams)
@@ -160,6 +161,15 @@ class ConfigDataHelper
 	public static function getPostsAllCategories($postType = 'post', $taxonomies = array())
 	{
 
+		$key       = md5( wp_json_encode( [ $postType, $taxonomies ] ) );
+		$transient = get_transient( __CLASS__ );
+
+		if ( false !== $transient && isset( $transient[ $key ] ) ) {
+			return $transient[ $key ];
+		}
+
+		$transient = (array) $transient;
+
 		$cats =  get_terms(
 			array(
 				'hide_empty' => 0,
@@ -185,7 +195,14 @@ class ConfigDataHelper
 			$catsParams[$id] = $name;
 		}
 
+		$transient[ $key ] = $catsParams;
+		set_transient( __CLASS__, $transient );
+
 		return $catsParams;
+	}
+
+	public static function clean_term_cache() {
+		delete_transient( __CLASS__ );
 	}
 
 	public static function getPageTypes()
